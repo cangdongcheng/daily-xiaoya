@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily Xiaoya · 诗经小雅</title>
+<style>
+* {box-sizing:border-box}
+body {margin:0; min-height:100svh; display:grid; place-items:center; padding:20px; background:#eae7dd; color:#29372d; font:16px "Segoe UI",sans-serif}
+main {width:min(100%,610px); padding:clamp(24px,6vw,56px); background:#fffcf3; border-top:4px solid #465844; box-shadow:0 8px 30px #29332512}
+header {display:flex; align-items:center; justify-content:space-between; color:#5e685c; font-size:.85rem}
+h1 {font:500 1.05rem SimSun,serif; letter-spacing:.16em; margin:0}
+summary {cursor:pointer; list-style:none; padding:36px 0 6px}
+summary::-webkit-details-marker {display:none}
+summary:focus-visible {outline:2px solid #805445; outline-offset:6px}
+#verse {display:block; font:500 clamp(1.65rem,5vw,2.6rem)/1.65 "Songti SC",SimSun,serif; letter-spacing:.07em}
+#verse span {display:inline-block}
+#verse ruby {ruby-align:center}
+#verse rt {font:400 .8rem/1.25 "Segoe UI",sans-serif; letter-spacing:0; color:#576652}
+#title {display:block; color:#924b37; margin-top:14px; font:1rem SimSun,serif}
+.hint {display:block; margin-top:30px; font-size:.88rem; color:#526452}
+details[open] .hint {display:none}
+#context {border-top:1px solid #d8d7c8; padding-top:16px; margin:16px 0; line-height:1.5}
+#context strong {display:block; margin-bottom:4px; color:#526452; font-size:.83rem}
+#translation {margin:0 0 6px; white-space:pre-line; font:1.15rem/1.55 Georgia,serif}
+#source {color:#526452; font-size:.88rem; text-underline-offset:3px}
+#shuffle {margin-top:22px; padding:8px 16px; border:1px solid #81907d; border-radius:4px; background:transparent; color:#344b38; font:inherit; cursor:pointer}
+#shuffle:hover {background:#e9ede2}
+</style>
+<main>
+<header><h1 lang="zh-Hans">诗经 · 小雅</h1><time id="date"></time></header>
+<details id="card">
+  <summary><span id="verse" lang="zh-Hans"></span><span id="title" lang="zh-Hans"></span><span class="hint">Context &amp; translation ↓</span></summary>
+  <p id="context"><strong>In the poem</strong><span id="scene"></span></p>
+  <blockquote id="translation"></blockquote>
+  <a id="source" target="_blank" rel="noopener noreferrer">Translated by James Legge ↗</a>
+</details>
+<button id="shuffle" type="button">Shuffle</button>
+</main>
+<script>
+// Source texts: https://zh.wikisource.org/wiki/詩經
+// Additional excerpts: https://github.com/chinese-poetry/chinese-poetry/blob/master/诗经/shijing.json
+const poems = [
+  {
+    title: "鹿鸣", lines: ["呦呦鹿鸣，","食野之苹。"],
+    pinyin: "yōu yōu lù míng shí yě zhī píng",
+    translation: "With pleased sounds the deer call to one another,\nEating the celery of the fields.",
+    source: "https://www.shiren.org/xlib/lingshidao/hanshi/shijing.htm#:~:text=%E9%B9%BF%E9%B3%B4%20LU%20MING",
+    context: "A host welcomes guests with music, just as the deer call to one another across the field."
+  },
+  {
+    title: "采薇", lines: ["昔我往矣，","杨柳依依。"],
+    pinyin: "xī wǒ wǎng yǐ yáng liǔ yī yī",
+    translation: "At first, when we set out,\nThe willows were fresh and green;",
+    source: "https://ctext.org/book-of-poetry/cai-wei/zhs",
+    context: "On the road home through snow, a soldier remembers the willows as they were when he left."
+  },
+  {
+    title: "斯干", lines: ["秩秩斯干，","幽幽南山。"],
+    pinyin: "zhì zhì sī gān yōu yōu nán shān",
+    translation: "By the graceful sweep of these banks,\nWith the southern hill, so calm in the distance,",
+    source: "https://ctext.org/book-of-poetry/si-gan/zhs",
+    context: "These hills frame the site of a new home where the family hopes its children will grow up."
+  },
+  {
+    title: "天保", lines: ["如月之恒，","如日之升。"],
+    pinyin: "rú yuè zhī gèng rú rì zhī shēng",
+    translation: "Like the moon advancing to the full,\nLike the sun ascending the heavens,",
+    source: "https://ctext.org/book-of-poetry/tian-bao/ens",
+    context: "Someone offers a blessing, wishing the person addressed a life as full of promise as the rising sun."
+  },
+  {
+    title: "采薇", lines: ["今我来思，","雨雪霏霏。"],
+    pinyin: "jīn wǒ lái sī yù xuě fēi fēi",
+    translation: "Now, when we shall be returning,\nThe snow will be falling in clouds.",
+    source: "https://ctext.org/book-of-poetry/cai-wei/zhs",
+    context: "A soldier recalls the willows at his departure and pictures snow on the same road home."
+  },
+  {
+    title: "四牡", lines: ["四牡騑騑，","周道倭迟。"],
+    pinyin: "sì mǔ fēi fēi zhōu dào wēi chí",
+    translation: "My four steeds advanced without stopping;\nThe way from Zhou was winding and tedious.",
+    source: "https://ctext.org/book-of-poetry/si-mu/zhs",
+    context: "The traveler keeps the king’s horses moving, though he longs to go home and care for his parents."
+  },
+  {
+    title: "皇皇者华", lines: ["皇皇者华，","于彼原隰。"],
+    pinyin: "huáng huáng zhě huā yú bǐ yuán xí",
+    translation: "Brilliant are the flowers,\nOn those level heights and the low grounds.",
+    source: "https://ctext.org/book-of-poetry/huang-huang-zhe-hua",
+    context: "An envoy rides past these flowers, eager to seek advice from the people he meets."
+  },
+  {
+    title: "棠棣", lines: ["妻子好合，","如鼓瑟琴。"],
+    pinyin: "qī zǐ hǎo hé rú gǔ sè qín",
+    translation: "Loving union with wife and children,\nIs like the music of lutes;",
+    source: "https://ctext.org/book-of-poetry/chang-di/ens",
+    context: "The singer has just described brothers making peace and now imagines the whole family playing in tune."
+  },
+  {
+    title: "伐木", lines: ["伐木丁丁，","鸟鸣嘤嘤。"],
+    pinyin: "fá mù zhēng zhēng niǎo míng yīng yīng",
+    translation: "On the trees go the blows zheng-zheng;\nAnd the birds cry out ying-ying.",
+    source: "https://ctext.org/book-of-poetry/fa-mu",
+    context: "The bird calls for a companion, and the woodcutter’s song turns to the friends he wants at his table."
+  },
+  {
+    title: "出车", lines: ["春日迟迟，","卉木萋萋。"],
+    pinyin: "chūn rì chí chí huì mù qī qī",
+    translation: "The spring-days are lengthening out;\nThe plants and trees grow full of verdure;",
+    source: "https://ctext.org/book-of-poetry/chu-che/zh",
+    context: "After a long campaign, the soldiers are finally talking about going home as the spring days lengthen."
+  },
+  {
+    title: "杕杜", lines: ["有杕之杜，","有睆其实。"],
+    pinyin: "yǒu dì zhī dù yǒu huǎn qí shí",
+    translation: "Solitary stands the russet pear tree,\nWith its fruit so bright.",
+    source: "https://ctext.org/book-of-poetry/di-du1/zhs",
+    context: "A woman waiting for someone on military service watches the pear tree bear fruit as the months pass."
+  },
+  {
+    title: "鱼丽", lines: ["君子有酒，","旨且多。"],
+    pinyin: "jūn zǐ yǒu jiǔ zhǐ qiě duō",
+    translation: "Our host has spirits,\nGood and abundance of them.",
+    source: "https://ctext.org/book-of-poetry/yu-li/zhs",
+    context: "The host has just named the fish caught for the feast and now offers the guests wine."
+  },
+  {
+    title: "南有嘉鱼", lines: ["君子有酒，","嘉宾式燕以乐。"],
+    pinyin: "jūn zǐ yǒu jiǔ jiā bīn shì yàn yǐ lè",
+    translation: "The host has spirits,\nOn which his admirable guests feast with him joyfully.",
+    source: "https://ctext.org/book-of-poetry/nan-you-jia-yu",
+    context: "Each time the song returns to the fish in the south, the host invites the guests to drink again."
+  },
+  {
+    title: "南山有台", lines: ["乐只君子，","邦家之基。"],
+    pinyin: "lè zhǐ jūn zǐ bāng jiā zhī jī",
+    translation: "To be rejoiced in are ye, noble men,\nThe foundations of the State.",
+    source: "https://www.shiren.org/xlib/lingshidao/hanshi/shijing.htm#:~:text=%E5%8D%97%E5%B1%B1%E6%9C%89%E8%87%BA%20NAN%20SHAN%20YOU%20TAI",
+    context: "At a gathering, the singers praise the guests for what their presence means to the whole country."
+  },
+  {
+    title: "蓼萧", lines: ["既见君子，","我心写兮。"],
+    pinyin: "jì jiàn jūn zǐ wǒ xīn xiè xī",
+    translation: "Now that I see my noble men,\nMy heart is entirely satisfied.",
+    source: "https://ctext.org/book-of-poetry/liao-xiao/zh",
+    context: "The longed-for meeting finally happens, and the next line catches the guests laughing together."
+  },
+  {
+    title: "湛露", lines: ["湛湛露斯，","匪阳不晞。"],
+    pinyin: "zhàn zhàn lù sī fěi yáng bù xī",
+    translation: "Heavy lies the dew;\nNothing but the sun can dry it.",
+    source: "https://ctext.org/book-of-poetry/zhan-lu/zh",
+    context: "The dew will last until sunrise, and the guests seem just as willing to stay through the night."
+  },
+  {
+    title: "彤弓", lines: ["钟鼓既设，","一朝飨之。"],
+    pinyin: "zhōng gǔ jì shè yī zhāo xiǎng zhī",
+    translation: "The bells and drums have been arranged in order,\nAnd all morning will I feast him.",
+    source: "https://ctext.org/book-of-poetry/tong-gong/ens",
+    context: "The guest is about to receive a red bow, and the host has arranged music for the occasion."
+  },
+  {
+    title: "菁菁者莪", lines: ["菁菁者莪，","在彼中阿。"],
+    pinyin: "jīng jīng zhě é zài bǐ zhōng ē",
+    translation: "Luxuriantly grows the aster-southernwood,\nIn the midst of that large mound.",
+    source: "https://ctext.org/book-of-poetry/jing-jing-zhe-e/ens",
+    context: "The singer spots lush plants on a slope just before greeting someone whose arrival brings joy."
+  },
+  {
+    title: "六月", lines: ["六月栖栖，","戎车既饬。"],
+    pinyin: "liù yuè xī xī róng chē jì chì",
+    translation: "In the sixth month all was bustle and excitement.\nThe war carriages had been made ready,",
+    source: "https://ctext.org/book-of-poetry/liu-yue/zhs",
+    context: "An attack has brought the army out in the sixth month, and the chariots must leave at once."
+  },
+  {
+    title: "采芑", lines: ["钲人伐鼓，","陈师鞠旅。"],
+    pinyin: "zhēng rén fá gǔ chén shī jū lǚ",
+    translation: "With his jinglers and drummers,\nHe marshalled his hosts and addressed them.",
+    source: "https://ctext.org/book-of-poetry/cai-qi",
+    context: "The drummer gives the signal for Fang Shu’s soldiers to form ranks and hear their orders."
+  },
+  {
+    title: "车攻", lines: ["我车既攻，","我马既同。"],
+    pinyin: "wǒ chē jì gōng wǒ mǎ jì tóng",
+    translation: "Our chariots were strong,\nOur horses were well matched,",
+    source: "https://ctext.org/book-of-poetry/che-gong",
+    context: "The hunting party is about to head east, so the opening lines take stock of horses and chariots."
+  },
+  {
+    title: "吉日", lines: ["田车既好，","四牡孔阜。"],
+    pinyin: "tián chē jì hǎo sì mǔ kǒng fù",
+    translation: "Our hunting carriages were good;\nThe team for each was in fine condition.",
+    source: "https://ctext.org/book-of-poetry/ji-ri/zhs",
+    context: "Before the hunt, the party chooses a favorable day and offers a prayer for the horses."
+  },
+  {
+    title: "鸿雁", lines: ["鸿雁于飞，","肃肃其羽。"],
+    pinyin: "hóng yàn yú fēi sù sù qí yǔ",
+    translation: "The wild geese are flying about;\nSu-su goes the rustle of their wings.",
+    source: "https://ctext.org/book-of-poetry/hong-yan",
+    context: "As geese cross the sky, people far from home labor in the open and build walls."
+  },
+  {
+    title: "庭燎", lines: ["夜如何其？","夜未央，","庭燎之光。"],
+    pinyin: "yè rú hé jī yè wèi yāng tíng liáo zhī guāng",
+    translation: "How goes the night?\nIt is not yet midnight.\nThe torch is blazing in the court-yard.",
+    source: "https://ctext.org/book-of-poetry/ting-liao",
+    context: "Someone waiting for the court to gather keeps asking the time as the first chariot bells draw near."
+  },
+  {
+    title: "沔水", lines: ["沔彼流水，","朝宗于海。"],
+    pinyin: "miǎn bǐ liú shuǐ cháo zōng yú hǎi",
+    translation: "In large volume, those flowing waters,\nGo to the court of the sea.",
+    source: "https://ctext.org/book-of-poetry/mian-shui",
+    context: "After watching water find its way to the sea, the speaker turns to friends for help in a time of disorder."
+  },
+  {
+    title: "鹤鸣", lines: ["鹤鸣于九皋，","声闻于野。"],
+    pinyin: "hè míng yú jiǔ gāo shēng wén yú yě",
+    translation: "The crane cries in the ninth pool of the marsh,\nAnd her voice is heard in the [distant] wilds.",
+    source: "https://ctext.org/book-of-poetry/he-ming/zhs",
+    context: "The crane stays hidden in the marsh, yet its cry carries to someone standing out in the open."
+  },
+  {
+    title: "祈父", lines: ["胡转予于恤，","靡所止居？"],
+    pinyin: "hú zhuǎn yú yú xù mǐ suǒ zhǐ jū",
+    translation: "Why have you rolled us into this sorrow,\nSo that we have no abiding place?",
+    source: "https://ctext.org/book-of-poetry/qi-fu",
+    context: "A soldier addresses the official who sent him away, leaving his mother at home."
+  },
+  {
+    title: "白驹", lines: ["皎皎白驹，","食我场苗。"],
+    pinyin: "jiǎo jiǎo bái jū shí wǒ cháng miáo",
+    translation: "Let the brilliant white colt,\nFeed on the young growth of my vegetable garden.",
+    source: "https://ctext.org/book-of-poetry/bai-ju/zh",
+    context: "The host wants to tether the visitor’s colt so the two can spend a little more time together."
+  },
+  {
+    title: "黄鸟", lines: ["黄鸟黄鸟，","无集于穀，","无啄我粟。"],
+    pinyin: "huáng niǎo huáng niǎo wú jí yú gǔ wú zhuó wǒ sù",
+    translation: "Yellow bird, yellow bird,\nDo not settle on the broussonetias,\nDo not eat my paddy.",
+    source: "https://ctext.org/book-of-poetry/huang-niao1/zh",
+    context: "A stranger scolds the bird for eating grain, then admits how much they want to go home."
+  },
+  {
+    title: "我行其野", lines: ["尔不我畜，","复我邦家。"],
+    pinyin: "ěr bù wǒ xù fù wǒ bāng jiā",
+    translation: "But you do not entertain me;\nAnd I go back to my country and clan.",
+    source: "https://ctext.org/book-of-poetry/wo-xing-qi-ye/zh",
+    context: "The speaker came to live with relatives by marriage and now feels unwelcome enough to leave."
+  },
+  {
+    title: "无羊", lines: ["谁谓尔无羊？","三百维群。"],
+    pinyin: "shuí wèi ěr wú yáng sān bǎi wéi qún",
+    translation: "Who can say that you have no sheep?\nThere are three hundred in [each] herd.",
+    source: "https://ctext.org/book-of-poetry/wu-yang",
+    context: "Someone questions the size of the flock, and the singer answers by counting sheep in the hundreds."
+  },
+  {
+    title: "节南山", lines: ["节彼南山，","维石岩岩。"],
+    pinyin: "jié bǐ nán shān wéi shí yán yán",
+    translation: "Lofty is that southern hill,\nWith its masses of rocks!",
+    source: "https://ctext.org/book-of-poetry/jie-nan-shan",
+    context: "The mountain fills the view just before the singer tells a powerful minister that everyone is watching him."
+  },
+  {
+    title: "正月", lines: ["正月繁霜，","我心忧伤。"],
+    pinyin: "zhēng yuè fán shuāng wǒ xīn yōu shāng",
+    translation: "In the first month [of summer] the hoar-frost abounds,\nAnd my heart is wounded with sorrow.",
+    source: "https://ctext.org/book-of-poetry/zheng-yue",
+    context: "Frost comes when the speaker least expects it, as rumors spread and people grow afraid."
+  },
+  {
+    title: "十月之交", lines: ["日有食之，","亦孔之丑。"],
+    pinyin: "rì yǒu shí zhī yì kǒng zhī chǒu",
+    translation: "The sun was eclipsed,\nA thing of very evil omen.",
+    source: "https://ctext.org/book-of-poetry/shi-yue-zi-jiao",
+    context: "The speaker records an eclipse and takes it as a sign that something has gone wrong in the kingdom."
+  },
+  {
+    title: "雨无正", lines: ["降丧饥馑，","斩伐四国。"],
+    pinyin: "jiàng sāng jī jǐn zhǎn fá sì guó",
+    translation: "Sending down death and famine,\nDestroying all through the kingdom?",
+    source: "https://ctext.org/book-of-poetry/yu-wu-zheng",
+    context: "The speaker appeals to Heaven as famine strikes and people in authority abandon their duties."
+  },
+  {
+    title: "小旻", lines: ["战战兢兢，","如临深渊，","如履薄冰。"],
+    pinyin: "zhàn zhàn jīng jīng rú lín shēn yuān rú lǚ bó bīng",
+    translation: "We should be apprehensive and careful,\nAs if we were on the brink of a deep gulf,\nAs if we were treading on thin ice.",
+    source: "https://ctext.org/book-of-poetry/xiao-min",
+    context: "At court, people talk over good advice, and the speaker feels as exposed as someone crossing thin ice."
+  },
+  {
+    title: "小宛", lines: ["明发不寐，","有怀二人。"],
+    pinyin: "míng fā bù mèi yǒu huái èr rén",
+    translation: "When the dawn is breaking, and I cannot sleep,\nThe thoughts in my breast are of our parents.",
+    source: "https://ctext.org/book-of-poetry/xiao-wan",
+    context: "The speaker has spent the night thinking of both parents and is still awake when dawn comes."
+  },
+  {
+    title: "小弁", lines: ["何辜于天？","我罪伊何？"],
+    pinyin: "hé gū yú tiān wǒ zuì yī hé",
+    translation: "What is my offence against Heaven?\nWhat is my crime?",
+    source: "https://ctext.org/book-of-poetry/xiao-bian",
+    context: "Feeling rejected by a parent, the speaker searches for some wrong that could explain the rejection."
+  },
+  {
+    title: "巧言", lines: ["巧言如簧，","颜之厚矣。"],
+    pinyin: "qiǎo yán rú huáng yán zhī hòu yǐ",
+    translation: "Their artful words, like organ-tongues,\nShow how unblushing are their faces.",
+    source: "https://ctext.org/book-of-poetry/qiao-yan",
+    context: "The speaker has seen lies cause trouble at court and compares a glib tongue to a reed that makes music."
+  },
+  {
+    title: "何人斯", lines: ["胡逝我梁，","不入我门？"],
+    pinyin: "hú shì wǒ liáng bù rù wǒ mén",
+    translation: "Why did he approach my dam,\nWithout entering my gate?",
+    source: "https://ctext.org/book-of-poetry/he-ren-si",
+    context: "Someone who once spent time with the speaker now passes the house without stopping."
+  },
+  {
+    title: "巷伯", lines: ["萋兮斐兮，","成是贝锦。"],
+    pinyin: "qī xī fěi xī chéng shì bèi jǐn",
+    translation: "A few elegant lines,\nMay be made out to be shell-embroidery.",
+    source: "https://ctext.org/book-of-poetry/xiang-bo/zhs",
+    context: "The pattern takes shape thread by thread, much as scattered details can be woven into a false accusation."
+  },
+  {
+    title: "谷风", lines: ["将恐将惧，","维予与女。"],
+    pinyin: "jiāng kǒng jiāng jù wéi yú yǔ rǔ",
+    translation: "In the time of fear and dread,\nIt was all I and you.",
+    source: "https://ctext.org/book-of-poetry/gu-feng1",
+    context: "The speaker stood by a companion through danger and now finds themselves forgotten in easier times."
+  },
+  {
+    title: "蓼莪", lines: ["哀哀父母，","生我劬劳。"],
+    pinyin: "āi āi fù mǔ shēng wǒ qú láo",
+    translation: "Alas! alas! my parents,\nWith what toil ye gave me birth!",
+    source: "https://ctext.org/book-of-poetry/liao-e",
+    context: "Remembering how both parents carried and fed their child, the speaker grieves the chance to repay them."
+  },
+  {
+    title: "大东", lines: ["周道如砥，","其直如矢。"],
+    pinyin: "zhōu dào rú dǐ qí zhí rú shǐ",
+    translation: "The way to Zhou was like a whetstone,\nAnd straight as an arrow.",
+    source: "https://ctext.org/book-of-poetry/da-dong/zh",
+    context: "Officials travel this smooth road while the people who watch them pass struggle to make a living."
+  },
+  {
+    title: "四月", lines: ["秋日凄凄，","百卉具腓。"],
+    pinyin: "qiū rì qī qī bǎi huì jù féi",
+    translation: "The autumn days become cold,\nAnd the plants all decay.",
+    source: "https://ctext.org/book-of-poetry/si-yue/zhs",
+    context: "The speaker has been suffering since summer, and the dying plants mark another season gone."
+  },
+  {
+    title: "北山", lines: ["王事靡盬，","忧我父母。"],
+    pinyin: "wáng shì mǐ gǔ yōu wǒ fù mǔ",
+    translation: "The king's business is not to be slackly performed;\nAnd my parents are left in sorrow.",
+    source: "https://ctext.org/book-of-poetry/bei-shan/zh",
+    context: "An overworked official worries about his parents while other men in the king’s service have time to rest."
+  },
+  {
+    title: "无将大车", lines: ["无将大车，","祇自尘兮。"],
+    pinyin: "wú jiāng dà chē zhǐ zì chén xī",
+    translation: "Do not push forward a waggon; --\nYou will only raise the dust about yourself.",
+    source: "https://ctext.org/book-of-poetry/wu-jiang-da-che/zh",
+    context: "Each push of the cart throws up more dust, just as dwelling on a worry can make it harder to bear."
+  },
+  {
+    title: "小明", lines: ["明明上天，","照临下土。"],
+    pinyin: "míng míng shàng tiān zhào lín xià tǔ",
+    translation: "O bright and high Heaven,\nWho enlightenest and rulest this lower world!",
+    source: "https://ctext.org/book-of-poetry/xiao-ming/zh",
+    context: "Serving far to the west, the traveler looks up at the sky and wonders when the journey home can begin."
+  },
+  {
+    title: "鼓钟", lines: ["鼓钟将将，","淮水汤汤，","忧心且伤。"],
+    pinyin: "gǔ zhōng qiāng qiāng huái shuǐ shāng shāng yōu xīn qiě shāng",
+    translation: "His bells ring out jiang-jiang,\nWhile the waters of the Huai go sweeping on;\nSad is my heart and wounded.",
+    source: "https://ctext.org/book-of-poetry/gu-zhong/zh",
+    context: "Hearing bells beside the Huai River, the listener remembers people of earlier times whom they still admire."
+  },
+  {
+    title: "楚茨", lines: ["我黍与与，","我稷翼翼。"],
+    pinyin: "wǒ shǔ yǔ yǔ wǒ jì yì yì",
+    translation: "That our millet might be abundant,\nAnd our sacrificial millet luxuriant.",
+    source: "https://ctext.org/book-of-poetry/chu-ci",
+    context: "The family has cleared the thorns to grow this grain for a feast in honor of its ancestors."
+  },
+  {
+    title: "信南山", lines: ["我疆我理，","南东其亩。"],
+    pinyin: "wǒ jiāng wǒ lǐ nán dōng qí mǔ",
+    translation: "We define their boundaries, we form their smaller divisions,\nAnd make the acres lie, here to the south, there to the east.",
+    source: "https://ctext.org/book-of-poetry/xin-nan-shan/zhs",
+    context: "The people lay out fields below the southern hills where their harvest will supply offerings to their ancestors."
+  },
+  {
+    title: "甫田", lines: ["我取其陈，","食我农人。"],
+    pinyin: "wǒ qǔ qí chén sì wǒ nóng rén",
+    translation: "I take the old stores,\nAnd with them feed the husbandmen,",
+    source: "https://ctext.org/book-of-poetry/fu-tian1/zhs",
+    context: "Stored grain from a past harvest feeds the workers tending this year’s fields."
+  },
+  {
+    title: "大田", lines: ["雨我公田，","遂及我私。"],
+    pinyin: "yù wǒ gōng tián suì jí wǒ sī",
+    translation: "May it rain first on our public fields,\nAnd then come to our private!",
+    source: "https://ctext.org/book-of-poetry/da-tian/zhs",
+    context: "The singer follows the same shower from the shared fields to the families’ own plots."
+  },
+  {
+    title: "瞻彼洛矣", lines: ["瞻彼洛矣，","维水泱泱。"],
+    pinyin: "zhān bǐ luò yǐ wéi shuǐ yāng yāng",
+    translation: "Look at the Luo,\nWith its waters broad and deep.",
+    source: "https://ctext.org/book-of-poetry/zhan-bi-luo-yi",
+    context: "The broad Luo River sets the scene for a visitor whom the singers wish long life and good fortune."
+  },
+  {
+    title: "裳裳者华", lines: ["我觏之子，","我心写兮。"],
+    pinyin: "wǒ gòu zhī zǐ wǒ xīn xiè xī",
+    translation: "I see these princes,\nAnd my heart is entirely satisfied.",
+    source: "https://ctext.org/book-of-poetry/chang-chang-zhe-hua",
+    context: "After describing the flowers, the speaker greets the arriving guest and notices how the meeting lifts their spirits."
+  },
+  {
+    title: "桑扈", lines: ["交交桑扈，","有莺其羽。"],
+    pinyin: "jiāo jiāo sāng hù yǒu yīng qí yǔ",
+    translation: "They flit about, the green-beaks,\nWith their variegated wings.",
+    source: "https://ctext.org/book-of-poetry/sang-hu",
+    context: "The bird’s bright feathers open a banquet song that wishes the guests good fortune."
+  },
+  {
+    title: "鸳鸯", lines: ["君子万年，","福禄宜之。"],
+    pinyin: "jūn zǐ wàn nián fú lù yí zhī",
+    translation: "May our sovereign live for ten thousand years,\nEnjoying the happiness and wealth which are his due!",
+    source: "https://ctext.org/book-of-poetry/yuan-yang",
+    context: "This wish for long life returns after every scene, from ducks on the water to horses in their stalls."
+  },
+  {
+    title: "頍弁", lines: ["尔酒既旨，","尔肴既嘉。"],
+    pinyin: "ěr jiǔ jì zhǐ ěr yáo jì jiā",
+    translation: "Since your spirits are [so] good,\nAnd your viands are [so] fine,",
+    source: "https://ctext.org/book-of-poetry/kui-bian/ens",
+    context: "As relatives gather over food and wine, the singer wonders how many more evenings they will have together."
+  },
+  {
+    title: "车舝", lines: ["高山仰止，","景行行止。"],
+    pinyin: "gāo shān yǎng zhǐ jǐng háng xíng zhǐ",
+    translation: "The high hill is looked up to;\nThe great road is easy to be travelled on.",
+    source: "https://ctext.org/book-of-poetry/che-xia",
+    context: "A traveler on the way to meet his bride looks up at a mountain and follows the road toward her."
+  },
+  {
+    title: "青蝇", lines: ["岂弟君子，","无信谗言。"],
+    pinyin: "kǎi tì jūn zǐ wú xìn chán yán",
+    translation: "O happy and courteous sovereign,\nDo not believe slanderous speeches.",
+    source: "https://ctext.org/book-of-poetry/qing-ying/zhs",
+    context: "The poem keeps returning to buzzing flies as the speaker asks a ruler to stop listening to slander."
+  },
+  {
+    title: "宾之初筵", lines: ["宾之初筵，","左右秩秩。"],
+    pinyin: "bīn zhī chū yán zuǒ yòu zhì zhì",
+    translation: "When the guests first approach the mats,\nThey take their places on the left and the right in an orderly manner.",
+    source: "https://ctext.org/book-of-poetry/bin-zhi-chu-yan/zhs",
+    context: "The guests take their places with care, making their later drunken stumbling all the more striking."
+  },
+  {
+    title: "鱼藻", lines: ["鱼在在藻，","有颁其首。"],
+    pinyin: "yú zài zài zǎo yǒu fén qí shǒu",
+    translation: "The fishes are there, there among the pondweed,\nShowing their large heads.",
+    source: "https://ctext.org/book-of-poetry/yu-zao",
+    context: "The song moves between fish at ease among the water plants and a king enjoying wine at home."
+  },
+  {
+    title: "采菽", lines: ["其旂淠淠，","鸾声嘒嘒。"],
+    pinyin: "qí qí pèi pèi luán shēng huì huì",
+    translation: "Their dragon flags moving [in the wind],\nWhile the sound of their bells comes hui-hui.",
+    source: "https://ctext.org/book-of-poetry/cai-shu/zh",
+    context: "People watching the road recognize visitors to the royal court by their banners and chariot bells."
+  },
+  {
+    title: "角弓", lines: ["兄弟婚姻，","无胥远矣。"],
+    pinyin: "xiōng dì hūn yīn wú xū yuǎn yǐ",
+    translation: "Brothers and relatives by affinity,\nShould not be treated distantly.",
+    source: "https://ctext.org/book-of-poetry/jiao-gong/zhs",
+    context: "A bow springs back when released, and the singer fears kin will pull apart if they treat each other coldly."
+  },
+  {
+    title: "菀柳", lines: ["有菀者柳，","不尚息焉。"],
+    pinyin: "yǒu yù zhě liǔ bù shàng xī yān",
+    translation: "There is a luxuriant willow tree; --\nWho would not wish to rest [under it]?",
+    source: "https://ctext.org/book-of-poetry/wan-liu/zhs",
+    context: "The willow promises shade, but the speaker fears what might happen to someone who draws close to the ruler."
+  },
+  {
+    title: "都人士", lines: ["彼都人士，","狐裘黄黄。"],
+    pinyin: "bǐ dū rén shì hú qiú huáng huáng",
+    translation: "Those officers of the [old] capital,\nWith their fox-furs so yellow,",
+    source: "https://ctext.org/book-of-poetry/du-ren-shi/ens",
+    context: "The singer remembers people once seen in the capital so clearly that even the color of a coat comes back."
+  },
+  {
+    title: "采绿", lines: ["终朝采绿，","不盈一匊。"],
+    pinyin: "zhōng zhāo cǎi lù bù yíng yī jū",
+    translation: "All the morning I gather the king-grass,\nAnd do not collect enough to fill my hands.",
+    source: "https://ctext.org/book-of-poetry/cai-lu/zh",
+    context: "Someone waiting for a loved one gathers almost nothing and counts the days since the promised return."
+  },
+  {
+    title: "黍苗", lines: ["芃芃黍苗，","阴雨膏之。"],
+    pinyin: "péng péng shǔ miáo yīn yǔ gào zhī",
+    translation: "Tall and strong grows the young millet,\nFattened by the genial rains.",
+    source: "https://ctext.org/book-of-poetry/shu-miao",
+    context: "Rain nourishes the millet just as the commander looks after the people making the long journey south."
+  },
+  {
+    title: "隰桑", lines: ["中心藏之，","何日忘之！"],
+    pinyin: "zhōng xīn cáng zhī hé rì wàng zhī",
+    translation: "In the core of my heart I keep them,\nAnd never will forget them.",
+    source: "https://www.shiren.org/xlib/lingshidao/hanshi/shijing.htm#:~:text=%E9%9A%B0%E6%A1%91%20XI%20SANG",
+    context: "After imagining the joy of meeting someone, the speaker wonders why such love has gone unspoken."
+  },
+  {
+    title: "白华", lines: ["之子之远，","俾我独兮。"],
+    pinyin: "zhī zǐ zhī yuǎn bǐ wǒ dú xī",
+    translation: "This man's sending me away,\nMakes me dwell solitary.",
+    source: "https://ctext.org/book-of-poetry/bai-hua",
+    context: "The poem opens with grasses bound together, an image that makes the speaker’s loneliness sharper."
+  },
+  {
+    title: "绵蛮", lines: ["绵蛮黄鸟，","止于丘阿。"],
+    pinyin: "mián mán huáng niǎo zhǐ yú qiū ē",
+    translation: "There is that little oriole,\nResting on a bend of the mound.",
+    source: "https://ctext.org/book-of-poetry/mian-man/zhs",
+    context: "A tired traveler sees a bird resting and wishes someone would offer food or a place in a cart."
+  },
+  {
+    title: "瓠叶", lines: ["幡幡瓠叶，","采之亨之。"],
+    pinyin: "fān fān hù yè cǎi zhī pēng zhī",
+    translation: "Of the gourd leaves, waving about,\nSome are taken and boiled;",
+    source: "https://ctext.org/book-of-poetry/hu-ye",
+    context: "With gourd leaves and a single rabbit for the table, the host still finds wine to share with a guest."
+  },
+  {
+    title: "渐渐之石", lines: ["山川悠远，","维其劳矣。"],
+    pinyin: "shān chuān yōu yuǎn wéi qí láo yǐ",
+    translation: "Over such a distance of hills and streams,\nHow toilsome is the march!",
+    source: "https://ctext.org/book-of-poetry/jian-jian-zhi-shi/zhs",
+    context: "Soldiers marching east measure the distance ahead in hills and rivers, with scarcely a morning to rest."
+  },
+  {
+    title: "苕之华", lines: ["苕之华，","芸其黄矣。"],
+    pinyin: "tiáo zhī huā yún qí huáng yǐ",
+    translation: "The flowers of the bignonia,\nAre of a deep yellow.",
+    source: "https://ctext.org/book-of-poetry/tiao-zhi-hua",
+    context: "The yellow blossoms open a song about hunger that ends by asking how many people have enough to eat."
+  },
+  {
+    title: "何草不黄", lines: ["何草不黄？","何日不行？"],
+    pinyin: "hé cǎo bù huáng hé rì bù xíng",
+    translation: "Every plant is yellow;\nEvery day we march.",
+    source: "https://ctext.org/book-of-poetry/he-cao-bu-huang",
+    context: "The grass has had time to turn yellow while the soldiers have been on the road day after day."
+  }
+];
+const epoch = Date.UTC(2026, 10, 12);
+const dateLabel = document.getElementById("date");
+let timer;
+let currentPoem;
+function showPoem(poem) {
+  currentPoem = poem;
+  const syllables = poem.pinyin.split(" ");
+  let nextSyllable = 0;
+  document.getElementById("verse").replaceChildren(...poem.lines.map(line => {
+    const span = document.createElement("span");
+    for (const character of line) {
+      if (/\p{Script=Han}/u.test(character)) {
+        const ruby = document.createElement("ruby");
+        const reading = document.createElement("rt");
+        reading.lang = "zh-Latn-pinyin";
+        reading.textContent = syllables[nextSyllable++];
+        ruby.append(character, reading);
+        span.append(ruby);
+      } else {
+        span.append(character);
+      }
+    }
+    return span;
+  }));
+  document.getElementById("title").textContent = "《" + poem.title + "》";
+  document.getElementById("translation").textContent = poem.translation;
+  document.getElementById("source").href = poem.source;
+  document.getElementById("scene").textContent = poem.context;
+  document.getElementById("card").open = false;
+}
+document.getElementById("shuffle").addEventListener("click", () => {
+  const choices = poems.filter(poem => poem !== currentPoem);
+  if (choices.length) showPoem(choices[Math.floor(Math.random() * choices.length)]);
+});
+function refresh() {
+  const now = new Date();
+  const day = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const key = new Date(day).toISOString().slice(0, 10);
+  if (dateLabel.dateTime !== key) {
+    const offset = (day - epoch) / 86400000;
+    const poem = poems[((offset % poems.length) + poems.length) % poems.length];
+    dateLabel.dateTime = key;
+    dateLabel.textContent = now.toLocaleDateString("en", {month:"short", day:"numeric"});
+    showPoem(poem);
+  }
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  clearTimeout(timer);
+  timer = setTimeout(refresh, midnight - now);
+}
+refresh();
+document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+window.addEventListener("pageshow", refresh);
+</script>
+</html>
